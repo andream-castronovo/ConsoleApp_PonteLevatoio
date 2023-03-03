@@ -31,6 +31,8 @@ namespace ConsoleApp_PonteLevatoio
         const int MAX_AUTO = 4;
         
         static int[] COORDINATE_PONTE = { 45, 10 };
+        static int[] COORDINATE_PARCHEGGIO = { 1, 8 };
+
 
         #region Ponte e acqua
         
@@ -38,68 +40,141 @@ namespace ConsoleApp_PonteLevatoio
         #endregion
 
 
-        static SemaphoreSlim _sempahore;
+        static SemaphoreSlim _sempahore = new SemaphoreSlim(MAX_AUTO);
 
         static object _lockConsole = new object();
         static object _lockParcheggio = new object();
         static object _lockPassa = new object();
         static object _lockCorsia = new object();
 
-        static List<Auto> _autoInTransito;
-        static List<Auto> _autoInParcheggio;
+        
+        //static List<Auto> _autoInParcheggio = new List<Auto>();
         
         static bool _levatoio = true;
         static bool[] _corsia = new bool[MAX_AUTO];
 
+        static int[] COORDINATE_MENU = { 0, 0 };
 
-        static Ponte _p;
+        static Ponte _ponte;
+        static Parcheggio _park;
 
         static void Main(string[] args)
         {
-            StampaAcqua();
-            StampaPonte();
+            Thread menu = new Thread(Menu);
+            //Thread parcheggio = new Thread(Parcheggio);
+
+            //parcheggio.Start();
+            menu.Start();
+            
+            _ponte = new Ponte(COORDINATE_PONTE[0], COORDINATE_PONTE[1], MAX_AUTO);
+            _park = new Parcheggio();
+
             StampaMenu();
-            Console.ReadLine();
         }
+
+        static void Parcheggio()
+        {
+            while (true)
+            {
+                
+            }
+        }
+
+
+        //static void Parcheggio()
+        //{
+        //    int old = 0;
+        //    List<Auto> temp = new List<Auto>();
+        //    while (true)
+        //    {
+        //        if (_autoInParcheggio.Count > 0 && _autoInParcheggio.Count != old)
+        //        {
+        //            old = _autoInParcheggio.Count;
+
+        //            int x = COORDINATE_PARCHEGGIO[0];
+        //            int y = COORDINATE_PARCHEGGIO[1];
+
+        //            for (int i = 0; i < _autoInParcheggio.Count; i++)
+        //            {
+        //                if (!temp.Contains(_autoInParcheggio[i])) // Per evitare di stampare tutto ogni volta
+        //                    Scrivi(_autoInParcheggio[i].Name, x: x, y: y+i);
+        //            }
+
+        //            temp = new List<Auto>(_autoInParcheggio);
+        //        }
+
+        //        if (_autoInParcheggio.Count > 0)
+        //        {
+        //            _sempahore.Wait();
+        //            Auto tmp = _autoInParcheggio[0];
+        //            _autoInParcheggio.RemoveAt(0);
+        //            _autoInTransito.Add(tmp);
+        //        }
+        //    }
+        //}
+
+        //static void Transito()
+        //{
+        //    while (true)
+        //    {
+
+        //    }
+        //}
 
         #region Stampe
-        static void StampaPonte()
-        {
-            int xPonte = COORDINATE_PONTE[0];
-            int yPonte = COORDINATE_PONTE[1];
-
-            _p = new Ponte(xPonte, yPonte, MAX_AUTO);
-        }
-        static void StampaAcqua()
-        {
-            
-
-
-        }
         static void StampaMenu()
         {
             Scrivi(
                 "Comandi:\n", 
-                x: 0, 
-                y: 0
+                x: COORDINATE_MENU[0], 
+                y: COORDINATE_MENU[1]
             );
             Scrivi(
                 "A) Auto\n", 
-                x: 0
+                x: 0,
+                y: COORDINATE_MENU[1] + 1
             );
             Scrivi(
                 "O) Apri ponte (Open)\n", 
-                x: 0
+                x: 0,
+                y: COORDINATE_MENU[1] + 2
             );
             Scrivi("C) Chiudi ponte (Close)\n", 
-                x: 0
+                x: 0,
+                y: COORDINATE_MENU[1] + 3
             );
             Scrivi("U) Chiudi programma (Uscita)\n", 
-                x: 0
+                x: 0,
+                y: COORDINATE_MENU[1] + 4
             );
         }
         
         #endregion
 
+
+        static void Menu()
+        {
+            do
+            {
+                char key = char.ToUpper(Console.ReadKey(true).KeyChar);
+
+                switch (key)
+                {
+                    case 'O':
+                        _ponte.ApriPonte();
+                        break;
+                    case 'C':
+                        _ponte.ChiudiPonte();
+                        break;
+                    case 'A':
+                        _park.AggiungiMacchina(new Auto());
+                        break;
+                    case 'U':
+                        Environment.Exit(0);
+                        break;
+                }
+
+            } while (true);
+        }
     }
 }

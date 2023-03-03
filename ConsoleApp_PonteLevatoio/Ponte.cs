@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Reflection.Emit;
 using static ConsoleApp_PonteLevatoio.MyConsoleUtils;
 
 namespace ConsoleApp_PonteLevatoio
@@ -9,12 +11,13 @@ namespace ConsoleApp_PonteLevatoio
         int _x;
         int _y;
         int _corsie;
-        string _lato;
-
+        string _latoChiuso;
+        string _latoAperto;
+        string _acqua;
         bool _aperto;
-
-
-        const string ACQUA = " ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ "; // FULL ASCII 178
+        
+        List<Auto> _autoInTransito = new List<Auto>();
+        
         const ConsoleColor COLORE_ACQUA = ConsoleColor.Blue;
 
         public Ponte(int xPonte, int yPonte, int corsie, int length = 27, char carattere = '=')
@@ -24,12 +27,14 @@ namespace ConsoleApp_PonteLevatoio
             _length = length;
             _corsie = corsie;
 
-            _lato = "";
-            
+            _latoChiuso = "";
+            _acqua = "";
 
             for (int i = 0; i < length; i++)
             {
-                _lato += carattere;
+                _latoChiuso += carattere;
+                _latoAperto += (i < 3) ? carattere.ToString() : "";
+                _acqua += (i == 0 || i == length - 1) ? " " : "▓";
             }
             
             _x = xPonte;
@@ -44,21 +49,58 @@ namespace ConsoleApp_PonteLevatoio
                 return;
             
             _aperto = true;
+            
             StampaPonte();
         }
-        
 
+        public void ChiudiPonte()
+        {
+            if (!_aperto)
+                return;
+
+            _aperto = false;
+            StampaPonte();
+        }
 
         private void StampaPonte()
         {
-            Scrivi(_lato, x: _x, y: _y); // I ":" servono a decidere quale parametro facoltativo assegnare
-
-            for (int i = 1; i <= _corsie; i++)
+            int currentY = _y;
+            
+            StampaAcqua();
+            if (!_aperto)
             {
-                Scrivi("                          ", x: _x, y: ++_y);
+                Scrivi(_latoChiuso, x: _x, y: currentY++);
+                for (int i = 0; i < _corsie; i++)
+                    Scrivi(_latoChiuso.Replace(_latoChiuso[0], ' '), x: _x, y: currentY++);
+                Scrivi(_latoChiuso, x: _x, y: currentY);
+            }
+            else
+            {
+                int d = (3 * _length) / 27;
+                string s = "";
+                string t = "";
+                for (int i = 0; i < d; i++)
+                {
+                    s += _latoChiuso[0];
+                    t += " ";
+                }
+
+                Scrivi(s, x: _x, y: currentY);
+                Scrivi(s, x: _x+_length-3, y:currentY++);
+                for (int i = 0;  i < _corsie; i++)
+                {
+                    Scrivi(t, x: _x, y:currentY);
+                    Scrivi("|", x: _x, y: currentY, fore:ConsoleColor.Red);
+                    Scrivi(t, x: _x+_length-3, y: currentY++);
+                }
+                Scrivi(s, x: _x, y: currentY);
+                Scrivi(s, x: _x+_length-3, y: currentY++);
+
             }
 
-            Scrivi(_lato, x: _x, y: _y);
+
+
+
         }
 
         private void StampaAcqua()
@@ -67,7 +109,7 @@ namespace ConsoleApp_PonteLevatoio
             int yAcqua = 0;
             
             while (yAcqua < Console.WindowHeight)
-                Scrivi(ACQUA, x: xAcqua, y: yAcqua++, fore: COLORE_ACQUA);
+                Scrivi(_acqua, x: xAcqua, y: yAcqua++, fore: COLORE_ACQUA);
         }
     }
 }

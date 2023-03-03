@@ -13,6 +13,9 @@ namespace ConsoleApp_PonteLevatoio
         public Auto() 
         {
             name = $"Auto {nAuto}";
+            nAuto++;
         }
+
+        public string Name { get { return name; } }
     }
 }

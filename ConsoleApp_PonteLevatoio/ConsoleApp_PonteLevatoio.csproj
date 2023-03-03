@@ -45,6 +45,7 @@
   <ItemGroup>
     <Compile Include="Auto.cs" />
     <Compile Include="MyConsoleUtils.cs" />
+    <Compile Include="Parcheggio.cs" />
     <Compile Include="Ponte.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
