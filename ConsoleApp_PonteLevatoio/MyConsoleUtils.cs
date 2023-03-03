@@ -14,6 +14,9 @@ namespace ConsoleApp_PonteLevatoio
             Console.ForegroundColor = fore;
             Console.BackgroundColor = back;
 
+            if (x >= Console.BufferWidth || y >= Console.BufferHeight)
+                return;
+
             if (lck == null)
             {
                 Console.SetCursorPosition(x, y);

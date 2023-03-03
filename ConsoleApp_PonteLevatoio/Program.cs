@@ -29,131 +29,111 @@ namespace ConsoleApp_PonteLevatoio
          */
 
         const int MAX_AUTO = 4;
-        
+
         static int[] COORDINATE_PONTE = { 45, 10 };
         static int[] COORDINATE_PARCHEGGIO = { 1, 8 };
 
 
         #region Ponte e acqua
-        
-        
+
+
         #endregion
 
 
-        static SemaphoreSlim _sempahore = new SemaphoreSlim(MAX_AUTO);
+        
 
         static object _lockConsole = new object();
         static object _lockParcheggio = new object();
         static object _lockPassa = new object();
         static object _lockCorsia = new object();
 
-        
+
         //static List<Auto> _autoInParcheggio = new List<Auto>();
-        
+
         static bool _levatoio = true;
         static bool[] _corsia = new bool[MAX_AUTO];
 
         static int[] COORDINATE_MENU = { 0, 0 };
+
+        static SemaphoreSlim _semaphore = new SemaphoreSlim(MAX_AUTO);
 
         static Ponte _ponte;
         static Parcheggio _park;
 
         static void Main(string[] args)
         {
-            Thread menu = new Thread(Menu);
-            //Thread parcheggio = new Thread(Parcheggio);
+            _ponte = new Ponte(COORDINATE_PONTE[0], COORDINATE_PONTE[1], MAX_AUTO, _semaphore, lockConsole: _lockConsole);
+            _park = new Parcheggio(0, 6, lockConsole: _lockConsole);
 
-            //parcheggio.Start();
+            Thread menu = new Thread(Menu);
+            Thread parcheggio = new Thread(GestioneParcheggio);
+
+            parcheggio.Start();
             menu.Start();
-            
-            _ponte = new Ponte(COORDINATE_PONTE[0], COORDINATE_PONTE[1], MAX_AUTO);
-            _park = new Parcheggio();
+
 
             StampaMenu();
         }
 
-        static void Parcheggio()
+        static void GestioneParcheggio()
         {
             while (true)
             {
-                
+                if (_park.NumeroMacchine > 0)
+                {
+                    _semaphore.Wait();
+                    Auto a = _park.FaiUscireAuto();
+                    _ponte.AggiungiMacchina(a);
+                }
             }
         }
 
+        static void GestionePonte()
+        {
+            while(true)
+            {
 
-        //static void Parcheggio()
-        //{
-        //    int old = 0;
-        //    List<Auto> temp = new List<Auto>();
-        //    while (true)
-        //    {
-        //        if (_autoInParcheggio.Count > 0 && _autoInParcheggio.Count != old)
-        //        {
-        //            old = _autoInParcheggio.Count;
+            }
+        }
 
-        //            int x = COORDINATE_PARCHEGGIO[0];
-        //            int y = COORDINATE_PARCHEGGIO[1];
-
-        //            for (int i = 0; i < _autoInParcheggio.Count; i++)
-        //            {
-        //                if (!temp.Contains(_autoInParcheggio[i])) // Per evitare di stampare tutto ogni volta
-        //                    Scrivi(_autoInParcheggio[i].Name, x: x, y: y+i);
-        //            }
-
-        //            temp = new List<Auto>(_autoInParcheggio);
-        //        }
-
-        //        if (_autoInParcheggio.Count > 0)
-        //        {
-        //            _sempahore.Wait();
-        //            Auto tmp = _autoInParcheggio[0];
-        //            _autoInParcheggio.RemoveAt(0);
-        //            _autoInTransito.Add(tmp);
-        //        }
-        //    }
-        //}
-
-        //static void Transito()
-        //{
-        //    while (true)
-        //    {
-
-        //    }
-        //}
 
         #region Stampe
         static void StampaMenu()
         {
             Scrivi(
-                "Comandi:\n", 
-                x: COORDINATE_MENU[0], 
-                y: COORDINATE_MENU[1]
+                "Comandi:\n",
+                x: COORDINATE_MENU[0],
+                y: COORDINATE_MENU[1],
+                lck: _lockConsole
             );
             Scrivi(
-                "A) Auto\n", 
+                "A) Auto\n",
                 x: 0,
-                y: COORDINATE_MENU[1] + 1
+                y: COORDINATE_MENU[1] + 1,
+                lck: _lockConsole
             );
             Scrivi(
-                "O) Apri ponte (Open)\n", 
+                "O) Apri ponte (Open)\n",
                 x: 0,
-                y: COORDINATE_MENU[1] + 2
+                y: COORDINATE_MENU[1] + 2,
+                lck: _lockConsole
             );
-            Scrivi("C) Chiudi ponte (Close)\n", 
+            Scrivi("C) Chiudi ponte (Close)\n",
                 x: 0,
-                y: COORDINATE_MENU[1] + 3
+                y: COORDINATE_MENU[1] + 3,
+                lck: _lockConsole
             );
-            Scrivi("U) Chiudi programma (Uscita)\n", 
+            Scrivi("U) Chiudi programma (Uscita)\n",
                 x: 0,
-                y: COORDINATE_MENU[1] + 4
+                y: COORDINATE_MENU[1] + 4,
+                lck: _lockConsole
             );
         }
-        
         #endregion
-
 
         static void Menu()
         {
+            Random rnd = new Random();
             do
             {
                 char key = char.ToUpper(Console.ReadKey(true).KeyChar);
@@ -167,7 +147,8 @@ namespace ConsoleApp_PonteLevatoio
                         _ponte.ChiudiPonte();
                         break;
                     case 'A':
-                        _park.AggiungiMacchina(new Auto());
+                        _park.AggiungiMacchina(new Auto(_lockConsole, rnd.Next(1,5)));
+                        _park.Stampa();
                         break;
                     case 'U':
                         Environment.Exit(0);
