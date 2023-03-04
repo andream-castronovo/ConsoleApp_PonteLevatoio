@@ -17,7 +17,9 @@ namespace ConsoleApp_PonteLevatoio
         string _latoChiuso;
         string _latoAperto;
         string _acqua;
+        
         bool _aperto;
+        bool _richiestaApertura;
 
         object _lockConsole;
         object _lockCorsia = new object();
@@ -31,7 +33,7 @@ namespace ConsoleApp_PonteLevatoio
 
         public Ponte(int xPonte, int yPonte, int corsie, SemaphoreSlim s, object lockConsole = null, int length = 27, char carattere = '=')
         {
-
+            _richiestaApertura = false;
             _aperto = false;
 
             _length = length;
@@ -60,27 +62,19 @@ namespace ConsoleApp_PonteLevatoio
             StampaPonte();
         }
 
-        public void ApriPonte()
+        public void OpenPonte()
         {
             if (_aperto)
                 return;
 
-            bool posso = false;
+            _richiestaApertura = true;
+            lock (_lockPassaPonte)
+            {
+                _richiestaApertura = false;
+                _aperto = true;
+                StampaPonte();
+            }
 
-            _aperto = true;
-            
-            while (!posso)
-                if (NumeroAutoTransito > 0)
-                {
-                    for (int i = 0; i < NumeroAutoTransito; i++)
-                    {
-                        if (!(_autoInTransito[i].X > _x - _autoInTransito[i].Name.Length - 2))
-                            posso = false;
-
-                    }
-                }
-
-            StampaPonte();
         }
 
         public void ChiudiPonte()
@@ -88,9 +82,9 @@ namespace ConsoleApp_PonteLevatoio
             if (!_aperto)
                 return;
 
-            
-           _aperto = false;
-           StampaPonte();
+
+            _aperto = false;
+            StampaPonte();
 
         }
 
@@ -147,30 +141,27 @@ namespace ConsoleApp_PonteLevatoio
 
         public void AggiungiMacchina(Auto auto)
         {
-
-            if (NumeroAutoTransito < _corsie)
+            bool trovata = false;
+            for (int i = 0; i < _corsie; i++)
             {
-                bool trovata = false;
-                for (int i = 0; i < _corsie; i++)
+                if (!_corsieOccupate[i] && !trovata)
                 {
-                    if (!_corsieOccupate[i] && !trovata)
-                    {
-                        auto.Corsia = i;
-                        auto.Y = _y + i + 1;
-                        auto.X = 7;
-                        _corsieOccupate[i] = !_corsieOccupate[i];
-                        trovata = true;
-                    }
+                    auto.Corsia = i;
+                    auto.Y = _y + i + 1;
+                    auto.X = 7;
+                    _corsieOccupate[i] = !_corsieOccupate[i];
+                    trovata = true;
                 }
-
-                lock (_lockCorsia)
-                    _autoInTransito.Add(auto);
-                
-                auto.AvviaTransito();
-                Debug.WriteLine($"Aggiunta macchina {auto} alla corsia {auto.Corsia}");
             }
-            else
-                throw new Exception("Max auto nel ponte");
+
+            lock (_lockCorsia)
+                _autoInTransito.Add(auto);
+
+            auto.Ponte = this;
+            auto.AvviaTransito();
+            Debug.WriteLine($"Aggiunta macchina {auto} alla corsia {auto.Corsia}");
+            //auto.T.Join();
+            //_s.Release();
         }
 
         public int Lenght
@@ -182,6 +173,7 @@ namespace ConsoleApp_PonteLevatoio
         private void CheckCars()
         {
             while (true)
+            {
                 if (NumeroAutoTransito > 0)
                 {
                     lock (_lockCorsia)
@@ -197,20 +189,63 @@ namespace ConsoleApp_PonteLevatoio
                             }
                             else // Ponte chiuso (macchine possono passare)
                             {
-                                if (!_autoInTransito[i].InTransito)
-                                    _autoInTransito[i].InTransito = true;
-                                if (_autoInTransito[i].X > _length + _x + 3)
+                                if (!_richiestaApertura)
                                 {
-                                    _autoInTransito[i].FermaTransito();
-                                    _corsieOccupate[_autoInTransito[i].Corsia] = false;
-                                    Scrivi("                           ", _lockConsole, x: _length + _x + 3, y: _y + _autoInTransito[i].Corsia + 1);
-                                    _autoInTransito.Remove(_autoInTransito[i]);
-                                    _s.Release();
+                                    if (!_autoInTransito[i].InTransito)
+                                        _autoInTransito[i].InTransito = true;
                                 }
+                                else
+                                {
+                                    if (_autoInTransito[i].X > LineaStopAperto(_autoInTransito[i]))
+                                    {
+                                        _autoInTransito[i].InTransito = true;
+                                        new Thread(() => AspettaAuto(i)).Start();
+                                    }
+                                    else if (_autoInTransito[i].X == LineaStopAperto(_autoInTransito[i]))
+                                    {
+                                        _autoInTransito[i].InTransito = false;
+                                    }
+                                }
+                            }
+
+                            if (_autoInTransito[i].X > LineaGoal + _autoInTransito[i].Name.Length)
+                            {
+                                FermaTransito(i);
                             }
                         }
                     }
                 }
+                
+            }
         }
+
+        private void AspettaAuto(int i)
+        {
+            lock (_lockPassaPonte)
+            {
+                _autoInTransito[i].T.Join();
+            }
+        }
+
+        private int LineaStopAperto(Auto a)
+        {
+            return _x - a.Name.Length;
+        }
+        private int LineaGoal
+        {
+            get => _x + _length;
+        }
+
+        private void FermaTransito(int i)
+        {
+            _corsieOccupate[_autoInTransito[i].Corsia] = false;
+            Scrivi("                               ", _lockConsole, x: LineaGoal, y: _y + _autoInTransito[i].Corsia + 1);
+            _autoInTransito.Remove(_autoInTransito[i]);
+            _s.Release();
+        }
+
+
+        public int X { get => _x; }
+        public int Y { get => _y; }
     }
 }

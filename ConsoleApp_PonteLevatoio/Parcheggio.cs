@@ -27,6 +27,7 @@ namespace ConsoleApp_PonteLevatoio
         public void AggiungiMacchina(Auto auto)
         {
             _listaMacchine.Add(auto);
+            Stampa();
         }
 
         public int NumeroMacchine

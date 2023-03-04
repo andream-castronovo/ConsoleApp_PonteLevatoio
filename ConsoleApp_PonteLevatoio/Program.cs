@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Threading;
 
 using static ConsoleApp_PonteLevatoio.MyConsoleUtils;
@@ -25,22 +26,19 @@ namespace ConsoleApp_PonteLevatoio
           Quando premo A una macchina spunta nello schermo e deve passare attraverso il ponte.
           Se viene richiesta l'apertura del ponte, le macchine che sono sopra finiscono di transitare, le altre non passano e aspettano l'apertura del ponte.
         
-          Usare Semaphore SOLO per limitare le auto sul ponte!
+          Usare Semaphore solo per limitare le auto sul ponte!
          */
 
         const int MAX_AUTO = 4;
 
         static int[] COORDINATE_PONTE = { 45, 10 };
-        static int[] COORDINATE_PARCHEGGIO = { 1, 8 };
+        static int[] COORDINATE_PARCHEGGIO = { 0, 6 };
 
 
         #region Ponte e acqua
 
 
         #endregion
-
-
-        
 
         static object _lockConsole = new object();
         static object _lockParcheggio = new object();
@@ -63,7 +61,7 @@ namespace ConsoleApp_PonteLevatoio
         static void Main(string[] args)
         {
             _ponte = new Ponte(COORDINATE_PONTE[0], COORDINATE_PONTE[1], MAX_AUTO, _semaphore, lockConsole: _lockConsole);
-            _park = new Parcheggio(0, 6, lockConsole: _lockConsole);
+            _park = new Parcheggio(COORDINATE_PARCHEGGIO[0], COORDINATE_PARCHEGGIO[1], lockConsole: _lockConsole);
 
             Thread menu = new Thread(Menu);
             Thread parcheggio = new Thread(GestioneParcheggio);
@@ -74,6 +72,8 @@ namespace ConsoleApp_PonteLevatoio
 
             StampaMenu();
         }
+
+
 
         static void GestioneParcheggio()
         {
@@ -141,14 +141,13 @@ namespace ConsoleApp_PonteLevatoio
                 switch (key)
                 {
                     case 'O':
-                        _ponte.ApriPonte();
+                        _ponte.OpenPonte();
                         break;
                     case 'C':
                         _ponte.ChiudiPonte();
                         break;
                     case 'A':
                         _park.AggiungiMacchina(new Auto(_lockConsole, rnd.Next(1,5)));
-                        _park.Stampa();
                         break;
                     case 'U':
                         Environment.Exit(0);
