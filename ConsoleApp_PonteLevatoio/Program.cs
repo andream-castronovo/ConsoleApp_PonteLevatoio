@@ -84,6 +84,7 @@ namespace ConsoleApp_PonteLevatoio
                     _semaphore.Wait();
                     Auto a = _park.FaiUscireAuto();
                     _ponte.AggiungiMacchina(a);
+                    
                 }
             }
         }
