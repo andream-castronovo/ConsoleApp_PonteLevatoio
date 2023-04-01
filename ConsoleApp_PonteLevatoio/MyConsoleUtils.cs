@@ -11,14 +11,13 @@ namespace ConsoleApp_PonteLevatoio
             if (y == -1)
                 y = Console.CursorTop;
 
-            Console.ForegroundColor = fore;
-            Console.BackgroundColor = back;
-
             if (x >= Console.BufferWidth || y >= Console.BufferHeight)
                 return;
 
             if (lck == null)
             {
+                Console.ForegroundColor = fore;
+                Console.BackgroundColor = back;
                 Console.SetCursorPosition(x, y);
                 Console.Write(testo);
                 return;
@@ -26,6 +25,8 @@ namespace ConsoleApp_PonteLevatoio
 
             lock (lck)
             {
+                Console.ForegroundColor = fore;
+                Console.BackgroundColor = back;
                 Console.SetCursorPosition(x, y);
                 Console.Write(testo);
             }
