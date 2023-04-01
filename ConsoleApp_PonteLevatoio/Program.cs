@@ -29,7 +29,7 @@ namespace ConsoleApp_PonteLevatoio
           Usare Semaphore solo per limitare le auto sul ponte!
          */
 
-        const int MAX_AUTO = 4;
+        const int MAX_AUTO = 6;
 
         static int[] COORDINATE_PONTE = { 45, 10 };
         static int[] COORDINATE_PARCHEGGIO = { 0, 6 };
@@ -60,6 +60,7 @@ namespace ConsoleApp_PonteLevatoio
 
         static void Main(string[] args)
         {
+            Console.CursorVisible = false;
             _ponte = new Ponte(COORDINATE_PONTE[0], COORDINATE_PONTE[1], MAX_AUTO, _semaphore, lockConsole: _lockConsole);
             _park = new Parcheggio(COORDINATE_PARCHEGGIO[0], COORDINATE_PARCHEGGIO[1], lockConsole: _lockConsole);
 
