@@ -44,11 +44,6 @@ namespace ConsoleApp_PonteLevatoio
             _t.Start();
             _inTransito = true;
         }
-        public void FermaTransito()
-        {
-            _t.Abort();
-            _inTransito = false;
-        }
         public void Transita()
         {
             while (true)
@@ -58,6 +53,10 @@ namespace ConsoleApp_PonteLevatoio
                     _x++;
                     Scrivi(" "+ToString(), _lock, _x, _y);
                     Thread.Sleep(200 / _speed);
+                }
+                else
+                {
+                    Scrivi(" " + ToString(), _lock, _x, _y);
                 }
                 if (_p != null && _x > _p.X + _p.Lenght + Name.Length)
                 {

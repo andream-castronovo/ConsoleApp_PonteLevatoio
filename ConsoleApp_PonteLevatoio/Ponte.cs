@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
 using System.Runtime.Remoting.Metadata;
 using System.Threading;
 using static ConsoleApp_PonteLevatoio.MyConsoleUtils;
@@ -57,9 +59,80 @@ namespace ConsoleApp_PonteLevatoio
             _x = xPonte;
             _y = yPonte;
 
-            new Thread(CheckCars).Start();
 
-            StampaPonte();
+
+            new Thread(CheckCars)
+            {
+                Name = "CheckCars"
+            }.Start();
+
+            new Thread(ControllaAperturaPonte)
+            {
+                Name = "ControllaAperturaPonte"
+            }.Start();
+
+            new Thread(AspettaAuto)
+            {
+                Name = "AspettaAuto"
+            }.Start();
+
+            new Thread(ControllaStampaPonte)
+            {
+                Name = "ControllaStampaPonte"
+            }.Start();
+        }
+
+        private void ControllaStampaPonte()
+        {
+            const int CHIUSO = 0;
+            const int RICHIESTA = 1;
+            const int APERTO = 2;
+
+            int previousState = -1;
+            while (true)
+            {
+                int stato = OttieniStato();
+                if (!(stato==previousState))
+                {
+                    previousState = OttieniStato();
+                    StampaPonte();
+                }
+
+                //if (stato == RICHIESTA)
+                //    new Thread((statos) =>
+                //    {
+                //        Thread.Sleep(2000);
+                //        if ((int) statos == 1)
+                //            StampaPonte();
+                //    }
+                //    ).Start(stato);
+            }
+
+            int OttieniStato()
+            {
+                if (_richiestaApertura)
+                {
+                    return RICHIESTA;
+                }
+                else if (!_richiestaApertura && !_aperto)
+                {
+                    return CHIUSO;
+                }
+                else if (_aperto)
+                {
+                    return APERTO;
+                }
+                return -1;
+            }
+        }
+
+        
+        private void DebugThread()
+        {
+            while (true)
+            {
+                Debug.Write($"Aperto = {_aperto}; Richiesta = {_richiestaApertura};\n");
+            }
         }
 
         public void OpenPonte()
@@ -67,12 +140,7 @@ namespace ConsoleApp_PonteLevatoio
             if (_aperto)
                 return;
 
-            lock (_lockRichiesta)
-            {
-                _richiestaApertura = true;
-            }
-
-            StampaPonte();
+            _richiestaApertura = true;
 
         }
 
@@ -84,7 +152,6 @@ namespace ConsoleApp_PonteLevatoio
 
             _aperto = false;
             _richiestaApertura = false;
-            StampaPonte();
 
         }
 
@@ -132,7 +199,7 @@ namespace ConsoleApp_PonteLevatoio
                 for (int i = 0; i < _corsie; i++)
                 {
                     Scrivi(t, x: _x, y: currentY, lck: _lockConsole);
-                    Scrivi("|", x: _x, y: currentY, fore: ConsoleColor.Red, lck: _lockConsole);
+                    Scrivi("|", x: _x + 1, y: currentY, fore: ConsoleColor.Red, lck: _lockConsole);
                     Scrivi(t, x: _x + _length - 3, y: currentY++, lck: _lockConsole);
                 }
                 Scrivi(s, x: _x, y: currentY, lck: _lockConsole);
@@ -175,7 +242,6 @@ namespace ConsoleApp_PonteLevatoio
 
             auto.Ponte = this;
             auto.AvviaTransito();
-            Debug.WriteLine($"Aggiunta macchina {auto} alla corsia {auto.Corsia}");
 
         }
 
@@ -192,66 +258,48 @@ namespace ConsoleApp_PonteLevatoio
             {
                 if (NumeroAutoTransito > 0)
                 {
-                    lock (_lockRichiesta)
+                    lock (_lockCorsia)
+                    for (int i = 0; i < NumeroAutoTransito; i++)
                     {
-                        if (_aperto)
+                        if (_richiestaApertura)
                         {
-                            for (int i = 0; i < NumeroAutoTransito; i++)
-                            {
-                                lock (_lockCorsia)
+                                if (_autoInTransito[i].X > LineaStopAperto(_autoInTransito[i])) // Se la macchina è sul ponte
                                 {
-                                    if (_autoInTransito[i].X == LineaStopAperto(_autoInTransito[i]))
+                                    _autoInTransito[i].InTransito = true;
+                                    if (!_autoDaAspettare.Contains(_autoInTransito[i]))
                                     {
-                                        _autoInTransito[i].InTransito = false;
-                                    }
-                                }
-                            }
-                        }
-                        else // Ponte chiuso (macchine possono passare)
-                        {
-                            if (!_richiestaApertura) // Non è richiesta l'apertura
-                            {
-                                for (int i = 0; i < NumeroAutoTransito; i++)
-                                {
-                                    lock (_lockCorsia)
-                                    {
-                                        if (!_autoInTransito[i].InTransito)
-                                            _autoInTransito[i].InTransito = true;
-                                    }
-                                }
-                            }
-                            else // È richiesta l'apertura
-                            {
-                                for (int i = 0; i < NumeroAutoTransito; i++) // Per ogni auto
-                                {
-                                    lock (_lockCorsia)
-                                    {
-                                        if (_autoInTransito[i].X > LineaStopAperto(_autoInTransito[i])) // Se la macchina è sul ponte
-                                        {
-                                            _autoInTransito[i].InTransito = true;
-                                            new Thread(new ParameterizedThreadStart(AspettaAuto))
-                                                .Start(_autoInTransito[i]);
-                                        }
-                                        else if (_autoInTransito[i].X == LineaStopAperto(_autoInTransito[i])) // Se è sulla linea di fermata
-                                        {
-                                            _autoInTransito[i].InTransito = false;
-                                        }
-                                        else if (_autoInTransito[i].X < LineaStopAperto(_autoInTransito[i])) // Se è prima della linea di fermata
-                                        {
-                                            _autoInTransito[i].InTransito = true;
-                                        }
-                                    }
-                                }
-                            }
+                                        _autoDaAspettare.Enqueue(_autoInTransito[i]);
+                                        Debug.WriteLine($"{_autoInTransito[i]} da aspettare");
 
+                                    }
+                                }
+                                else if (_autoInTransito[i].X == LineaStopAperto(_autoInTransito[i])) // Se è sulla linea di fermata
+                                {
+                                    _autoInTransito[i].InTransito = false;
+                                }
+                                else if (_autoInTransito[i].X < LineaStopAperto(_autoInTransito[i])) // Se è prima della linea di fermata
+                                {
+                                    _autoInTransito[i].InTransito = true;
+                                }
+
+
+                        }
+                        else if (!_richiestaApertura && !_aperto)
+                        {
+                                if (!_autoInTransito[i].InTransito)
+                                    _autoInTransito[i].InTransito = true;
+                        }
+                        else if (_aperto)
+                        {
+                                _autoInTransito[i].InTransito = !(_autoInTransito[i].X == LineaStopAperto(_autoInTransito[i]));
                         }
                     }
 
                 }
 
-                for (int i = 0; i < NumeroAutoTransito; i++) // Per ogni auto
+                lock (_lockCorsia)
                 {
-                    lock(_lockCorsia)
+                    for (int i = 0; i < NumeroAutoTransito; i++) // Per ogni auto
                     {
                         if (_autoInTransito[i].X > LineaGoal + _autoInTransito[i].Name.Length) // Se 
                         {
@@ -259,32 +307,46 @@ namespace ConsoleApp_PonteLevatoio
                         }
                     }
                 }
+            }
+        }
 
+        Queue<Auto> _autoDaAspettare = new Queue<Auto>();
+        private void ControllaAperturaPonte()
+        {
+            while (true)
+            {
                 if (_richiestaApertura)
                 {
-                    // Il problema è che entra qui prima che tutte le auto abbiano finito.
+                    Thread.Sleep(30);
                     lock (_lockPassaPonte)
                     {
                         _aperto = true;
                         _richiestaApertura = false;
-                        StampaPonte();
                     }
                 }
-                
             }
         }
-        
+
+        object _lock2 = new object();
         private void AspettaAuto(object a)
         {
-            Auto auto = (Auto)a;
-            lock (_lockPassaPonte)
+            while (true)
             {
-                auto.T.Join();
+                lock (_lockPassaPonte)
+                    while (_autoDaAspettare.Count > 0)
+                    {
+                        Auto asd = _autoDaAspettare.Dequeue();
+                        if (asd != null )
+                            asd.T.Join();
+                    }
+
             }
+
         }
 
         private int LineaStopAperto(Auto a)
         {
+            //Debug.WriteLine(a.ToString() +"  " + (_x - a.Name.Length));
             return _x - a.Name.Length;
         }
         private int LineaGoal
