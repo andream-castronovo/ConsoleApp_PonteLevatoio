@@ -8,7 +8,7 @@ namespace ConsoleApp_PonteLevatoio
     class Auto
     {
         private Thread _t;
-        private object _lock;
+        private object _lockConsole;
         
         private string _name;
         private bool _inTransito;
@@ -25,15 +25,15 @@ namespace ConsoleApp_PonteLevatoio
 
         public int Goal { get; set; }
 
-        public Auto(object lck, int speed, Ponte p = null) 
+        public Auto(object lck, int speed, Ponte p = null)
         {
             _name = $"Auto {nAuto}";
             _speed = speed;
-            _lock = lck ?? new object();
-            
-            _t = new Thread(Transita);
-            
+            _lockConsole = lck ?? new object();
+
             nAuto++;
+            _t = new Thread(Transita) { Name = $"{ToString()}_Transita" };
+            
             Goal = Console.WindowWidth;
 
             _p = p;
@@ -51,20 +51,20 @@ namespace ConsoleApp_PonteLevatoio
                 if (_inTransito)
                 {
                     _x++;
-                    Scrivi(" "+ToString(), _lock, _x, _y);
+                    Scrivi(" "+ToString(), _lockConsole, _x, _y);
                     Thread.Sleep(200 / _speed);
                 }
                 else
                 {
-                    Scrivi(" " + ToString(), _lock, _x, _y);
+                    Scrivi(" " + ToString(), _lockConsole, _x, _y);
                 }
                 if (_p != null && _x > _p.X + _p.Lenght + Name.Length)
                 {
-                    Scrivi("               ", _lock, _x, _y);
+                    Scrivi("               ", _lockConsole, _x, _y);
                     Thread.CurrentThread.Abort();
                 }
             }
-                
+                 
         }
 
         public string Name { get { return _name; } }

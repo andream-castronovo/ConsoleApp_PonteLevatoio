@@ -16,8 +16,8 @@ namespace ConsoleApp_PonteLevatoio
         int _x;
         int _y;
         int _corsie;
+        
         string _latoChiuso;
-        string _latoAperto;
         string _acqua;
 
         bool _aperto;
@@ -28,6 +28,7 @@ namespace ConsoleApp_PonteLevatoio
         object _lockPassaPonte = new object();
 
         bool[] _corsieOccupate;
+
         SemaphoreSlim _s;
         List<Auto> _autoInTransito = new List<Auto>();
 
@@ -52,7 +53,6 @@ namespace ConsoleApp_PonteLevatoio
             for (int i = 0; i < length; i++)
             {
                 _latoChiuso += carattere;
-                _latoAperto += (i < 3) ? carattere.ToString() : "";
                 _acqua += (i == 0 || i == length - 1) ? " " : "▓";
             }
 
@@ -97,15 +97,13 @@ namespace ConsoleApp_PonteLevatoio
                     previousState = OttieniStato();
                     StampaPonte();
                 }
-
-                //if (stato == RICHIESTA)
-                //    new Thread((statos) =>
-                //    {
-                //        Thread.Sleep(2000);
-                //        if ((int) statos == 1)
-                //            StampaPonte();
-                //    }
-                //    ).Start(stato);
+                else if (stato == RICHIESTA)
+                {
+                    for (int i = 0; i < _corsie; i++)
+                    {
+                        Scrivi("|", x: _x + 1, y: _y + i + 1, fore: ConsoleColor.Red, lck: _lockConsole);
+                    }
+                }
             }
 
             int OttieniStato()
@@ -125,16 +123,6 @@ namespace ConsoleApp_PonteLevatoio
                 return -1;
             }
         }
-
-        
-        private void DebugThread()
-        {
-            while (true)
-            {
-                Debug.Write($"Aperto = {_aperto}; Richiesta = {_richiestaApertura};\n");
-            }
-        }
-
         public void OpenPonte()
         {
             if (_aperto)
@@ -250,8 +238,6 @@ namespace ConsoleApp_PonteLevatoio
             get => _length;
         }
 
-        object _lockRichiesta = new object();
-
         private void CheckCars()
         {
             while (true)
@@ -259,41 +245,40 @@ namespace ConsoleApp_PonteLevatoio
                 if (NumeroAutoTransito > 0)
                 {
                     lock (_lockCorsia)
-                    for (int i = 0; i < NumeroAutoTransito; i++)
-                    {
-                        if (_richiestaApertura)
+                        for (int i = 0; i < NumeroAutoTransito; i++)
                         {
-                                if (_autoInTransito[i].X > LineaStopAperto(_autoInTransito[i])) // Se la macchina è sul ponte
-                                {
-                                    _autoInTransito[i].InTransito = true;
-                                    if (!_autoDaAspettare.Contains(_autoInTransito[i]))
+                            if (_richiestaApertura)
+                            {
+                                    if (_autoInTransito[i].X > LineaStopAperto(_autoInTransito[i])) // Se la macchina è sul ponte
                                     {
-                                        _autoDaAspettare.Enqueue(_autoInTransito[i]);
-                                        Debug.WriteLine($"{_autoInTransito[i]} da aspettare");
-
+                                        _autoInTransito[i].InTransito = true;
+                                        if (!_autoDaAspettare.Contains(_autoInTransito[i]))
+                                        {
+                                            _autoDaAspettare.Enqueue(_autoInTransito[i]);
+                                            Debug.WriteLine($"{_autoInTransito[i]} da aspettare");
+                                        }
                                     }
-                                }
-                                else if (_autoInTransito[i].X == LineaStopAperto(_autoInTransito[i])) // Se è sulla linea di fermata
-                                {
-                                    _autoInTransito[i].InTransito = false;
-                                }
-                                else if (_autoInTransito[i].X < LineaStopAperto(_autoInTransito[i])) // Se è prima della linea di fermata
-                                {
-                                    _autoInTransito[i].InTransito = true;
-                                }
+                                    else if (_autoInTransito[i].X == LineaStopAperto(_autoInTransito[i])) // Se è sulla linea di fermata
+                                    {
+                                        _autoInTransito[i].InTransito = false;
+                                    }
+                                    else if (_autoInTransito[i].X < LineaStopAperto(_autoInTransito[i])) // Se è prima della linea di fermata
+                                    {
+                                        _autoInTransito[i].InTransito = true;
+                                    }
 
 
+                            }
+                            else if (!_richiestaApertura && !_aperto)
+                            {
+                                    if (!_autoInTransito[i].InTransito)
+                                        _autoInTransito[i].InTransito = true;
+                            }
+                            else if (_aperto)
+                            {
+                                    _autoInTransito[i].InTransito = !(_autoInTransito[i].X == LineaStopAperto(_autoInTransito[i]));
+                            }
                         }
-                        else if (!_richiestaApertura && !_aperto)
-                        {
-                                if (!_autoInTransito[i].InTransito)
-                                    _autoInTransito[i].InTransito = true;
-                        }
-                        else if (_aperto)
-                        {
-                                _autoInTransito[i].InTransito = !(_autoInTransito[i].X == LineaStopAperto(_autoInTransito[i]));
-                        }
-                    }
 
                 }
 
@@ -315,10 +300,10 @@ namespace ConsoleApp_PonteLevatoio
         {
             while (true)
             {
-                if (_richiestaApertura)
+                Thread.Sleep(30);
+                lock (_lockPassaPonte)
                 {
-                    Thread.Sleep(30);
-                    lock (_lockPassaPonte)
+                    if (_richiestaApertura)
                     {
                         _aperto = true;
                         _richiestaApertura = false;
@@ -327,7 +312,6 @@ namespace ConsoleApp_PonteLevatoio
             }
         }
 
-        object _lock2 = new object();
         private void AspettaAuto(object a)
         {
             while (true)
@@ -364,8 +348,6 @@ namespace ConsoleApp_PonteLevatoio
                 _s.Release();
             }
         }
-
-
         public int X { get => _x; }
         public int Y { get => _y; }
     }

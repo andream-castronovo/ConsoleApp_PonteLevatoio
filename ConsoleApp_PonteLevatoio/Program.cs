@@ -29,30 +29,14 @@ namespace ConsoleApp_PonteLevatoio
           Usare Semaphore solo per limitare le auto sul ponte!
          */
 
-        const int MAX_AUTO = 6;
+        const int MAX_AUTO = 4;
 
         static int[] COORDINATE_PONTE = { 45, 10 };
         static int[] COORDINATE_PARCHEGGIO = { 0, 6 };
-
-
-        #region Ponte e acqua
-
-
-        #endregion
-
-        static object _lockConsole = new object();
-        static object _lockParcheggio = new object();
-        static object _lockPassa = new object();
-        static object _lockCorsia = new object();
-
-
-        //static List<Auto> _autoInParcheggio = new List<Auto>();
-
-        static bool _levatoio = true;
-        static bool[] _corsia = new bool[MAX_AUTO];
-
         static int[] COORDINATE_MENU = { 0, 0 };
 
+        static object _lockConsole = new object();
+        
         static SemaphoreSlim _semaphore = new SemaphoreSlim(MAX_AUTO);
 
         static Ponte _ponte;
@@ -61,11 +45,12 @@ namespace ConsoleApp_PonteLevatoio
         static void Main(string[] args)
         {
             Console.CursorVisible = false;
+
             _ponte = new Ponte(COORDINATE_PONTE[0], COORDINATE_PONTE[1], MAX_AUTO, _semaphore, lockConsole: _lockConsole);
             _park = new Parcheggio(COORDINATE_PARCHEGGIO[0], COORDINATE_PARCHEGGIO[1], lockConsole: _lockConsole);
 
-            Thread menu = new Thread(Menu);
-            Thread parcheggio = new Thread(GestioneParcheggio);
+            Thread menu = new Thread(Menu) { Name="ConsoleMenu" };
+            Thread parcheggio = new Thread(GestioneParcheggio) { Name="ConsoleGestioneParcheggio"};
 
             parcheggio.Start();
             menu.Start();
@@ -89,15 +74,6 @@ namespace ConsoleApp_PonteLevatoio
                 }
             }
         }
-
-        static void GestionePonte()
-        {
-            while(true)
-            {
-
-            }
-        }
-
 
         #region Stampe
         static void StampaMenu()
