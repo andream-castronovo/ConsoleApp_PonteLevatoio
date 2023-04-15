@@ -12,30 +12,40 @@ namespace ConsoleApp_PonteLevatoio
 {
     class Ponte
     {
-        int _length;
-        int _x;
+        // Programmato da Andrea Maria Castronovo - 4°I - Data consegna: 15/04/2023
+
+        int _length; // Lunghezza ponte
+        int _x; // Coordinate ponte
         int _y;
-        int _corsie;
+        int _corsie; // Numero di corsie del ponte
         
-        string _latoChiuso;
-        string _acqua;
+        string _latoChiuso; // CDC che definisce la stringa del lato del ponte chiuso
+        string _acqua; // CDC che definisce la stringa che rappresenta l'acqua
 
-        bool _aperto;
-        bool _richiestaApertura;
+        bool _aperto; // Se il ponte è aperto o no
+        bool _richiestaApertura; // Se è richiesta l'apertura
 
+        // lock per gestione sincronizzazione
         object _lockConsole;
         object _lockCorsia = new object();
         object _lockPassaPonte = new object();
 
+        // corsie occupate: true
+        // corsie libere: false
         bool[] _corsieOccupate;
 
+        // Semaforo per gestione ingresso automobili nel ponte
         SemaphoreSlim _s;
+
+        // Automobili attualmente in transito nel ponte
         List<Auto> _autoInTransito = new List<Auto>();
 
+        // Colore acqua
         const ConsoleColor COLORE_ACQUA = ConsoleColor.Blue;
 
         public Ponte(int xPonte, int yPonte, int corsie, SemaphoreSlim s, object lockConsole = null, int length = 27, char carattere = '=')
         {
+            // Imposto i CDC ai valori di default
             _aperto = false;
             _richiestaApertura = false;
 
@@ -49,7 +59,7 @@ namespace ConsoleApp_PonteLevatoio
             _corsieOccupate = new bool[_corsie];
             _s = s;
 
-
+            // Calcolo il lato chiuso e l'acqua in base alla lunghezza del ponte
             for (int i = 0; i < length; i++)
             {
                 _latoChiuso += carattere;
@@ -60,22 +70,27 @@ namespace ConsoleApp_PonteLevatoio
             _y = yPonte;
 
 
+            // Avvio i thread necessari
 
+            // Thread per controllare costantemente le macchine e il loro movimento
             new Thread(CheckCars)
             {
                 Name = "CheckCars"
             }.Start();
 
+            // Thread per controllare la richiesta di apertura del ponte
             new Thread(ControllaAperturaPonte)
             {
                 Name = "ControllaAperturaPonte"
             }.Start();
 
+            // Thread per limitare l'apertura del ponte in caso vi siano auto di passaggio
             new Thread(AspettaAuto)
             {
                 Name = "AspettaAuto"
             }.Start();
 
+            // Thread per gestire la stampa del ponte
             new Thread(ControllaStampaPonte)
             {
                 Name = "ControllaStampaPonte"
@@ -99,7 +114,7 @@ namespace ConsoleApp_PonteLevatoio
                 }
                 else if (stato == RICHIESTA)
                 {
-                    for (int i = 0; i < _corsie; i++)
+                    for (int i = 0; i < _corsie; i++) // Per evitare che il passaggio delle automobili sovrascrivi la sbarra di chiusura
                     {
                         Scrivi("|", x: _x + 1, y: _y + i + 1, fore: ConsoleColor.Red, lck: _lockConsole);
                     }
@@ -123,6 +138,9 @@ namespace ConsoleApp_PonteLevatoio
                 return -1;
             }
         }
+        /// <summary>
+        /// Richiede l'apertura del ponte, gestita poi nel metodo gestito dal Thread apposito
+        /// </summary>
         public void OpenPonte()
         {
             if (_aperto)
@@ -131,6 +149,10 @@ namespace ConsoleApp_PonteLevatoio
             _richiestaApertura = true;
 
         }
+
+        /// <summary>
+        /// Gestisce chiusura del ponte, gestita poi nel metodo gestito dal Thread apposito
+        /// </summary>
 
         public void ChiudiPonte()
         {

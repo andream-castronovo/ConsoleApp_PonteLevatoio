@@ -9,6 +9,8 @@ namespace ConsoleApp_PonteLevatoio
 {
     class Parcheggio
     {
+        // Programmato da Andrea Maria Castronovo - 4°I - Data consegna: 15/04/2023
+
         List<Auto> _listaMacchine;
 
         int _x;
